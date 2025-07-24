@@ -227,10 +227,31 @@ class LoginWindow(QWidget):
         self.register_button.setMinimumHeight(45)
         layout.addWidget(self.register_button)
         
+        # Password requirements instructions
+        password_instructions = QLabel("""
+    Password Requirements:
+    • At least 6 characters long
+    • Must contain at least one letter
+    • Must contain at least one number
+    • Avoid common passwords for better security
+        """.strip())
+        password_instructions.setStyleSheet("""
+            color: #6c757d;
+            font-size: 9pt;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+        """)
+        password_instructions.setWordWrap(True)
+        layout.addWidget(password_instructions)
+        
         layout.addStretch()
         
         self.logger.debug("Registration tab created successfully")
         return tab
+
     
     def setup_styles(self) -> None:
         """Set up widget styles."""
@@ -242,6 +263,7 @@ class LoginWindow(QWidget):
                 background-color: #f8f9fa;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 font-size: 11pt;
+                color: black;
             }
             
             QTabWidget::pane {
@@ -256,7 +278,7 @@ class LoginWindow(QWidget):
             
             QTabBar::tab {
                 background-color: #e9ecef;
-                color: #495057;
+                color: black;
                 padding: 12px 24px;
                 margin-right: 2px;
                 border-top-left-radius: 8px;
@@ -280,6 +302,7 @@ class LoginWindow(QWidget):
                 border-radius: 6px;
                 background-color: white;
                 font-size: 11pt;
+                color: black;
             }
             
             QLineEdit:focus {
@@ -315,16 +338,17 @@ class LoginWindow(QWidget):
             }
             
             QLabel {
-                color: #495057;
+                color: black;
             }
             
             QFormLayout QLabel {
                 font-weight: 500;
-                color: #343a40;
+                color: black;
             }
         """)
         
         self.logger.debug("Login window styles applied")
+
     
     def connect_signals(self) -> None:
         """Connect widget signals to slots with logging."""
