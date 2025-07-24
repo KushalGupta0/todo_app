@@ -22,6 +22,9 @@ from core.user import User
 from core.routines import RoutineManager
 from gui.widgets import TaskWidget, TagWidget, TaskTreeWidget
 
+import time
+from utils.logger import log_performance, log_exception
+
 
 class AddTaskDialog(QDialog):
     """Dialog for adding new tasks."""
@@ -202,7 +205,7 @@ class TodoWindow(QMainWindow):
         user_layout = QVBoxLayout(user_group)
         
         user_label = QLabel(f"Welcome, {self.user.username}")
-        user_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        user_label.setStyleSheet("font-weight: bold; font-size: 12pt; color: #000000;")
         user_layout.addWidget(user_label)
         
         logout_btn = QPushButton("Logout")
@@ -216,7 +219,7 @@ class TodoWindow(QMainWindow):
         actions_layout = QVBoxLayout(actions_group)
         
         self.add_task_btn = QPushButton("+ Add Task")
-        self.add_task_btn.setStyleSheet("font-weight: bold; color: #007bff;")
+        #self.add_task_btn.setStyleSheet("font-weight: bold; color: #ffffff; background-color: #007bff; border-radius: 4px; padding: 8px 16px;")
         actions_layout.addWidget(self.add_task_btn)
         
         self.generate_routines_btn = QPushButton("Generate Daily Tasks")
@@ -226,33 +229,109 @@ class TodoWindow(QMainWindow):
         
         # Filters
         filters_group = QGroupBox("Filters")
-        filters_layout = QVBoxLayout(filters_group)
-        
+        filters_main_layout = QVBoxLayout(filters_group)
+        filters_main_layout.setContentsMargins(5, 15, 5, 5)
+        filters_main_layout.setSpacing(5)
+
+        # Create scroll area for filters
+        filters_scroll = QScrollArea()
+        filters_scroll.setWidgetResizable(True)
+        filters_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        filters_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        filters_scroll.setFrameShape(QFrame.NoFrame)
+
+        # Create content widget for scroll area
+        filters_content = QWidget()
+        filters_layout = QVBoxLayout(filters_content)
+        filters_layout.setContentsMargins(10, 10, 10, 10)
+        filters_layout.setSpacing(15)
+
         # Search
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search tasks...")
         filters_layout.addWidget(QLabel("Search:"))
         filters_layout.addWidget(self.search_edit)
-        
+
         # Status filter
         self.status_combo = QComboBox()
         self.status_combo.addItems(["All Tasks", "Active", "Completed", "Overdue"])
         filters_layout.addWidget(QLabel("Status:"))
         filters_layout.addWidget(self.status_combo)
-        
+
         # Priority filter
         self.priority_combo = QComboBox()
         self.priority_combo.addItems(["All Priorities", "Low", "Medium", "High", "Urgent"])
         filters_layout.addWidget(QLabel("Priority:"))
         filters_layout.addWidget(self.priority_combo)
-        
+
         # Tag filter
         self.tag_combo = QComboBox()
         self.tag_combo.addItem("All Tags")
         filters_layout.addWidget(QLabel("Tag:"))
         filters_layout.addWidget(self.tag_combo)
-        
+
+        # Filter buttons section
+        filter_buttons_layout = QHBoxLayout()
+        filter_buttons_layout.setSpacing(10)
+
+        # Reset Filters button
+        self.reset_filters_btn = QPushButton("Reset")
+        self.reset_filters_btn.setMinimumHeight(35)
+        self.reset_filters_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-weight: bold;
+                font-size: 10pt;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+            QPushButton:pressed {
+                background-color: #495057;
+            }
+        """)
+
+        # Apply Filters button
+        self.apply_filters_btn = QPushButton("Apply")
+        self.apply_filters_btn.setMinimumHeight(35)
+        self.apply_filters_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-weight: bold;
+                font-size: 10pt;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;
+            }
+        """)
+
+        filter_buttons_layout.addWidget(self.reset_filters_btn)
+        filter_buttons_layout.addWidget(self.apply_filters_btn)
+
+        filters_layout.addLayout(filter_buttons_layout)
+
+        # Add stretch to push content to top
+        filters_layout.addStretch()
+
+        # Set content widget to scroll area
+        filters_scroll.setWidget(filters_content)
+
+        # Add scroll area to main filters layout
+        filters_main_layout.addWidget(filters_scroll)
+
         layout.addWidget(filters_group)
+
         
         # Statistics
         stats_group = QGroupBox("Statistics")
@@ -288,7 +367,7 @@ class TodoWindow(QMainWindow):
         header_layout = QHBoxLayout()
         
         tasks_label = QLabel("Tasks")
-        tasks_label.setStyleSheet("font-size: 16pt; font-weight: bold;")
+        tasks_label.setStyleSheet("font-size: 16pt; font-weight: bold; color: #000000;")
         header_layout.addWidget(tasks_label)
         
         header_layout.addStretch()
@@ -386,23 +465,24 @@ class TodoWindow(QMainWindow):
                 border-radius: 8px;
                 margin-top: 10px;
                 padding-top: 10px;
-                background-color: white;
+                background-color: #ffffff;
+                color: #000000;
             }
             
             QGroupBox::title {
                 subcontrol-origin: margin;
                 left: 10px;
                 padding: 0 5px 0 5px;
-                color: #495057;
+                color: #000000;
             }
             
             QPushButton {
                 background-color: #007bff;
-                color: white;
+                color: #ffffff;
                 border: none;
                 border-radius: 4px;
                 padding: 8px 16px;
-                font-weight: 500;
+                font-weight: bold;
             }
             
             QPushButton:hover {
@@ -414,28 +494,293 @@ class TodoWindow(QMainWindow):
             }
             
             QLineEdit, QComboBox {
-                padding: 6px;
+                padding: 12px;
                 border: 1px solid #ced4da;
                 border-radius: 4px;
-                background-color: white;
+                background-color: #ffffff;
+                color: #000000;
+                min-height: 20px;
             }
             
             QLineEdit:focus, QComboBox:focus {
                 border-color: #007bff;
             }
+            
+            QLabel {
+                color: #000000;
+            }
+            
+            QCheckBox {
+                color: #000000;
+            }
+            
+            QScrollArea {
+                background-color: transparent;
+                border: none;
+            }
+            
+            QScrollArea > QWidget > QWidget {
+                background-color: #ffffff;
+            }
+            
+            QScrollBar:vertical {
+                background-color: #f8f9fa;
+                width: 12px;
+                border-radius: 6px;
+            }
+            
+            QScrollBar::handle:vertical {
+                background-color: #dee2e6;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            
+            QScrollBar::handle:vertical:hover {
+                background-color: #ced4da;
+            }
+            
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+            }
+            
+            QTabWidget::pane {
+                border: 1px solid #dee2e6;
+                background-color: #ffffff;
+                border-radius: 8px;
+            }
+            
+            QTabBar::tab {
+                background-color: #e9ecef;
+                color: #000000;
+                padding: 12px 24px;
+                margin-right: 2px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-weight: 500;
+            }
+            
+            QTabBar::tab:selected {
+                background-color: #ffffff;
+                color: #000000;
+                border-bottom: 2px solid #007bff;
+            }
+            
+            QTabBar::tab:hover:!selected {
+                background-color: #f8f9fa;
+            }
+            
+            QMenuBar {
+                background-color: #ffffff;
+                color: #000000;
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            QMenuBar::item {
+                background-color: transparent;
+                color: #000000;
+                padding: 4px 8px;
+            }
+            
+            QMenuBar::item:selected {
+                background-color: #e9ecef;
+                color: #000000;
+            }
+            
+            QMenu {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #dee2e6;
+            }
+            
+            QMenu::item {
+                background-color: transparent;
+                color: #000000;
+                padding: 4px 20px;
+            }
+            
+            QMenu::item:selected {
+                background-color: #e9ecef;
+                color: #000000;
+            }
+            
+            QToolBar {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                color: #000000;
+            }
+            
+            QToolBar QToolButton {
+                background-color: transparent;
+                color: #000000;
+                border: none;
+                padding: 4px 8px;
+            }
+            
+            QToolBar QToolButton:hover {
+                background-color: #e9ecef;
+                color: #000000;
+            }
+            
+            QToolBar QToolButton:pressed {
+                background-color: #dee2e6;
+                color: #000000;
+            }
+            
+            QAction {
+                color: #000000;
+            }
+            
+             QMessageBox {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        
+        QMessageBox QLabel {
+            background-color: #ffffff;
+            color: #000000;
+            font-size: 11pt;
+        }
+        
+        QMessageBox QPushButton {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-weight: bold;
+            min-width: 80px;
+        }
+        
+        QMessageBox QPushButton:hover {
+            background-color: #0056b3;
+        }
+        
+        QMessageBox QPushButton:pressed {
+            background-color: #004085;
+        }
+        
+        QMessageBox QPushButton:default {
+            background-color: #28a745;
+        }
+        
+        QMessageBox QPushButton:default:hover {
+            background-color: #1e7e34;
+        }
+        
+        QDialog {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        
+        QDialog QLabel {
+            color: #000000;
+        }
+        
+        QDialog QPushButton {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-weight: bold;
+            min-width: 80px;
+        }
+                           
+         QLineEdit, QComboBox {
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #ffffff;
+            color: #000000;
+            min-height: 20px;
+        }
+        
+        QTextEdit {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 11pt;
+            selection-background-color: #007bff;
+            selection-color: #ffffff;
+        }
+        
+        QTextEdit:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        
+        QDateEdit {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 11pt;
+            min-height: 20px;
+        }
+        
+        QDateEdit:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        
+        QDateEdit::drop-down {
+            background-color: #ffffff;
+            border: none;
+            width: 20px;
+        }
+        
+        QDateEdit::down-arrow {
+            image: none;
+            border: 1px solid #ced4da;
+            background-color: #f8f9fa;
+            width: 12px;
+            height: 12px;
+        }
+        
+        QDateEdit QAbstractItemView {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #ced4da;
+            selection-background-color: #007bff;
+            selection-color: #ffffff;
+        }
+        
+        QCalendarWidget {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        
+        QCalendarWidget QWidget {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        
+        QCalendarWidget QTableView {
+            background-color: #ffffff;
+            color: #000000;
+            selection-background-color: #007bff;
+            selection-color: #ffffff;
+        }
         """)
+
+
+
+
     
     def connect_signals(self) -> None:
-        """Connect widget signals to slots."""
+        """Connect widget signals to slots with logging."""
         # Left panel actions
         self.add_task_btn.clicked.connect(self.add_task)
         self.generate_routines_btn.clicked.connect(self.generate_routine_tasks)
         
-        # Filters
-        self.search_edit.textChanged.connect(self.apply_filters)
-        self.status_combo.currentTextChanged.connect(self.apply_filters)
-        self.priority_combo.currentTextChanged.connect(self.apply_filters)
-        self.tag_combo.currentTextChanged.connect(self.apply_filters)
+        # Filter buttons
+        self.reset_filters_btn.clicked.connect(self.reset_filters)
+        self.apply_filters_btn.clicked.connect(self.apply_filters)
+        
         self.show_completed_checkbox.toggled.connect(self.apply_filters)
         
         # Task tree
@@ -443,6 +788,7 @@ class TodoWindow(QMainWindow):
         self.task_tree.task_edited.connect(self.edit_task)
         self.task_tree.task_deleted.connect(self.delete_task)
         self.task_tree.subtask_requested.connect(self.add_subtask)
+
     
     def load_data(self) -> None:
         """Load initial data."""
@@ -725,3 +1071,34 @@ class TodoWindow(QMainWindow):
         """Handle window close event."""
         self.refresh_timer.stop()
         event.accept()
+
+    def reset_filters(self) -> None:
+        """Reset all filters to default values."""
+        start_time = time.time()
+        self.logger.info("Resetting all filters")
+        
+        try:
+            # Reset all filter controls to default
+            self.search_edit.clear()
+            self.status_combo.setCurrentIndex(0)  # "All Tasks"
+            self.priority_combo.setCurrentIndex(0)  # "All Priorities"
+            self.tag_combo.setCurrentIndex(0)  # "All Tags"
+            self.show_completed_checkbox.setChecked(True)
+            
+            # Apply the reset filters
+            self.apply_filters()
+            
+            duration = (time.time() - start_time) * 1000
+            log_performance("Reset filters", duration)
+            self.logger.info("All filters reset successfully")
+            self.statusBar().showMessage("Filters reset")
+            
+        except Exception as e:
+            self.logger.error(f"Error resetting filters: {e}")
+            log_exception(e, "Reset filters")
+            QMessageBox.warning(self, "Error", f"Failed to reset filters: {str(e)}")
+
+    def apply_filters(self) -> None:
+        """Apply current filters to task list (existing method - keep as is)."""
+        # Your existing apply_filters method code stays the same
+        # Just make sure it doesn't get called automatically anymore

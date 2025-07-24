@@ -39,13 +39,15 @@ class TaskWidget(QWidget):
     
     def setup_ui(self) -> None:
         """Set up the widget UI."""
-        self.setMaximumHeight(80)
+        self.setMaximumHeight(120)  # INCREASED FROM 80 TO 120
+        self.setMinimumHeight(100)
         self.setStyleSheet("""
             TaskWidget {
                 background-color: white;
                 border: 1px solid #dee2e6;
                 border-radius: 8px;
                 margin: 2px;
+                color: #000000;
             }
             
             TaskWidget:hover {
@@ -63,8 +65,8 @@ class TaskWidget(QWidget):
         
         # Main layout
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 15, 12, 15)
+        layout.setSpacing(15)
         
         # Completion checkbox
         self.completed_checkbox = QCheckBox()
@@ -74,12 +76,12 @@ class TaskWidget(QWidget):
         
         # Task content
         content_layout = QVBoxLayout()
-        content_layout.setSpacing(4)
+        content_layout.setSpacing(8)
         
         # Title
         self.title_label = QLabel(self.task.title)
         title_font = QFont()
-        title_font.setPointSize(11)
+        title_font.setPointSize(12)
         title_font.setBold(True)
         self.title_label.setFont(title_font)
         content_layout.addWidget(self.title_label)
@@ -87,7 +89,7 @@ class TaskWidget(QWidget):
         # Description (if exists)
         if self.task.description:
             self.description_label = QLabel(self.task.description)
-            self.description_label.setStyleSheet("color: #6c757d; font-size: 9pt;")
+            self.description_label.setStyleSheet("color: #6c757d; font-size: 10pt;")
             self.description_label.setWordWrap(True)
             content_layout.addWidget(self.description_label)
         
@@ -108,7 +110,7 @@ class TaskWidget(QWidget):
         
         # Action buttons (initially hidden)
         self.edit_button = QPushButton("Edit")
-        self.edit_button.setFixedSize(50, 24)
+        self.edit_button.setFixedSize(60, 30)
         self.edit_button.setStyleSheet("""
             QPushButton {
                 background-color: #28a745;
@@ -126,7 +128,7 @@ class TaskWidget(QWidget):
         layout.addWidget(self.edit_button)
         
         self.delete_button = QPushButton("Del")
-        self.delete_button.setFixedSize(40, 24)
+        self.delete_button.setFixedSize(60, 30)
         self.delete_button.setStyleSheet("""
             QPushButton {
                 background-color: #dc3545;
@@ -285,18 +287,24 @@ class TaskTreeWidget(QTreeWidget):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
         
+        # Set uniform row height
+        self.setUniformRowHeights(True)  # ADD THIS LINE
+        
         # Set style
         self.setStyleSheet("""
             QTreeWidget {
-                background-color: white;
+                background-color: #ffffff;
                 border: 1px solid #dee2e6;
                 border-radius: 8px;
                 selection-background-color: #e3f2fd;
+                color: #000000;
             }
             
             QTreeWidget::item {
-                padding: 8px;
+                padding: 15px 8px;  /* INCREASED PADDING FROM 8px TO 15px */
                 border-bottom: 1px solid #f8f9fa;
+                color: #000000;
+                min-height: 100px;  /* ADD MINIMUM HEIGHT */
             }
             
             QTreeWidget::item:hover {
@@ -308,6 +316,7 @@ class TaskTreeWidget(QTreeWidget):
                 color: #1976d2;
             }
         """)
+
     
     def update_tasks(self, tasks: List[Task]) -> None:
         """
