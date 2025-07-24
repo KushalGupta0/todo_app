@@ -1,11 +1,12 @@
 """
-Database handler module.
+Database handler module with comprehensive logging.
 
 This module handles all database operations for the To-Do List application.
 """
 
 import sqlite3
 import json
+import time
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
@@ -13,10 +14,11 @@ from pathlib import Path
 from core.tasks import Task, Tag, Priority
 from core.user import User
 from core.routines import Routine, RepeatType
+from utils.logger import get_logger, log_database_operation, log_exception, log_performance
 
 
 class DatabaseHandler:
-    """Handles all database operations."""
+    """Handles all database operations with comprehensive logging."""
     
     def __init__(self, db_path: str = "todo_app.db") -> None:
         """
@@ -26,100 +28,122 @@ class DatabaseHandler:
             db_path: Path to SQLite database file
         """
         self.db_path = db_path
+        self.logger = get_logger(__name__)
         self._ensure_db_directory()
+        
+        self.logger.info(f"Database handler initialized with path: {db_path}")
     
     def _ensure_db_directory(self) -> None:
         """Ensure database directory exists."""
         db_file = Path(self.db_path)
         db_file.parent.mkdir(parents=True, exist_ok=True)
+        self.logger.debug(f"Database directory ensured: {db_file.parent}")
     
     def initialize_database(self) -> None:
-        """Initialize database tables."""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # Users table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT,
-                    password_hash BLOB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_login TIMESTAMP,
-                    is_active BOOLEAN DEFAULT 1
-                )
-            """)
-            
-            # Tasks table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS tasks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    completed BOOLEAN DEFAULT 0,
-                    parent_id INTEGER,
-                    user_id INTEGER NOT NULL,
-                    priority INTEGER DEFAULT 2,
-                    due_date TIMESTAMP,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    completed_at TIMESTAMP,
-                    additional_properties TEXT,
-                    FOREIGN KEY (parent_id) REFERENCES tasks (id) ON DELETE CASCADE,
-                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-                )
-            """)
-            
-            # Tags table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS tags (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT UNIQUE NOT NULL,
-                    color TEXT DEFAULT '#3498db',
-                    description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Task-Tags relationship table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS task_tags (
-                    task_id INTEGER,
-                    tag_id INTEGER,
-                    PRIMARY KEY (task_id, tag_id),
-                    FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
-                    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
-                )
-            """)
-            
-            # Routines table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS routines (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    user_id INTEGER NOT NULL,
-                    repeat_type TEXT DEFAULT 'daily',
-                    is_active BOOLEAN DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_generated TIMESTAMP,
-                    start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    end_date TIMESTAMP,
-                    preferred_time TEXT,
-                    custom_days TEXT,
-                    repeat_interval INTEGER DEFAULT 1,
-                    task_templates TEXT,
-                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-                )
-            """)
-            
-            conn.commit()
+        """Initialize database tables with logging."""
+        start_time = time.time()
+        self.logger.info("Starting database initialization")
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Users table
+                self.logger.debug("Creating users table")
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        email TEXT,
+                        password_hash BLOB NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_login TIMESTAMP,
+                        is_active BOOLEAN DEFAULT 1
+                    )
+                """)
+                
+                # Tasks table
+                self.logger.debug("Creating tasks table")
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS tasks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL,
+                        description TEXT,
+                        completed BOOLEAN DEFAULT 0,
+                        parent_id INTEGER,
+                        user_id INTEGER NOT NULL,
+                        priority INTEGER DEFAULT 2,
+                        due_date TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP,
+                        additional_properties TEXT,
+                        FOREIGN KEY (parent_id) REFERENCES tasks (id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                    )
+                """)
+                
+                # Tags table
+                self.logger.debug("Creating tags table")
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS tags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE NOT NULL,
+                        color TEXT DEFAULT '#3498db',
+                        description TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Task-Tags relationship table
+                self.logger.debug("Creating task_tags table")
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS task_tags (
+                        task_id INTEGER,
+                        tag_id INTEGER,
+                        PRIMARY KEY (task_id, tag_id),
+                        FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+                        FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+                    )
+                """)
+                
+                # Routines table
+                self.logger.debug("Creating routines table")
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS routines (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        user_id INTEGER NOT NULL,
+                        repeat_type TEXT DEFAULT 'daily',
+                        is_active BOOLEAN DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_generated TIMESTAMP,
+                        start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        end_date TIMESTAMP,
+                        preferred_time TEXT,
+                        custom_days TEXT,
+                        repeat_interval INTEGER DEFAULT 1,
+                        task_templates TEXT,
+                        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                    )
+                """)
+                
+                conn.commit()
+                
+                duration = (time.time() - start_time) * 1000
+                log_performance("Database initialization", duration)
+                self.logger.info("Database initialized successfully")
+                
+        except sqlite3.Error as e:
+            self.logger.error(f"Database initialization failed: {e}")
+            log_exception(e, "Database initialization")
+            raise
     
     # User operations
     def save_user(self, user: User) -> Optional[int]:
         """
-        Save a user to database.
+        Save a user to database with logging.
         
         Args:
             user: User to save
@@ -127,6 +151,9 @@ class DatabaseHandler:
         Returns:
             User ID if successful, None otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Saving user: {user.username}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -140,13 +167,26 @@ class DatabaseHandler:
                     user.created_at.isoformat(),
                     user.is_active
                 ))
-                return cursor.lastrowid
-        except sqlite3.Error:
+                user_id = cursor.lastrowid
+                
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("CREATE", "users", user_id, True)
+                log_performance("Save user", duration)
+                self.logger.info(f"User {user.username} saved with ID: {user_id}")
+                
+                return user_id
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_database_operation("CREATE", "users", None, False)
+            log_performance("Save user (failed)", duration)
+            self.logger.error(f"Failed to save user {user.username}: {e}")
+            log_exception(e, f"Saving user {user.username}")
             return None
     
     def load_user_by_username(self, username: str) -> Optional[User]:
         """
-        Load user by username.
+        Load user by username with logging.
         
         Args:
             username: Username to search for
@@ -154,6 +194,9 @@ class DatabaseHandler:
         Returns:
             User if found, None otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Loading user by username: {username}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -168,14 +211,30 @@ class DatabaseHandler:
                     user.created_at = datetime.fromisoformat(row[4]) if row[4] else datetime.now()
                     user.last_login = datetime.fromisoformat(row[5]) if row[5] else None
                     user.is_active = bool(row[6])
+                    
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("READ", "users", row[0], True)
+                    log_performance("Load user", duration)
+                    self.logger.debug(f"User {username} loaded successfully")
+                    
                     return user
-        except sqlite3.Error:
-            pass
+                else:
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("READ", "users", None, False)
+                    log_performance("Load user (not found)", duration)
+                    self.logger.debug(f"User {username} not found")
+                    
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load user (error)", duration)
+            self.logger.error(f"Failed to load user {username}: {e}")
+            log_exception(e, f"Loading user {username}")
+            
         return None
     
     def user_exists(self, username: str) -> bool:
         """
-        Check if user exists.
+        Check if user exists with logging.
         
         Args:
             username: Username to check
@@ -183,17 +242,31 @@ class DatabaseHandler:
         Returns:
             True if user exists, False otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Checking if user exists: {username}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
-                return cursor.fetchone() is not None
-        except sqlite3.Error:
+                exists = cursor.fetchone() is not None
+                
+                duration = (time.time() - start_time) * 1000
+                log_performance("Check user exists", duration)
+                self.logger.debug(f"User {username} exists: {exists}")
+                
+                return exists
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Check user exists (error)", duration)
+            self.logger.error(f"Error checking if user {username} exists: {e}")
+            log_exception(e, f"Checking user exists {username}")
             return False
     
     def update_user_last_login(self, user: User) -> bool:
         """
-        Update user's last login timestamp.
+        Update user's last login timestamp with logging.
         
         Args:
             user: User to update
@@ -201,19 +274,38 @@ class DatabaseHandler:
         Returns:
             True if successful, False otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Updating last login for user: {user.username}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users SET last_login = ? WHERE id = ?
                 """, (user.last_login.isoformat() if user.last_login else None, user.user_id))
-                return cursor.rowcount > 0
-        except sqlite3.Error:
+                
+                success = cursor.rowcount > 0
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("UPDATE", "users", user.user_id, success)
+                log_performance("Update user last login", duration)
+                
+                if success:
+                    self.logger.debug(f"Last login updated for user: {user.username}")
+                else:
+                    self.logger.warning(f"Failed to update last login for user: {user.username}")
+                
+                return success
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Update user last login (error)", duration)
+            self.logger.error(f"Error updating last login for user {user.username}: {e}")
+            log_exception(e, f"Updating last login for {user.username}")
             return False
     
     def update_user(self, user: User) -> bool:
         """
-        Update user information.
+        Update user information with logging.
         
         Args:
             user: User to update
@@ -221,6 +313,9 @@ class DatabaseHandler:
         Returns:
             True if successful, False otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Updating user: {user.username}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -234,17 +329,36 @@ class DatabaseHandler:
                     user.is_active,
                     user.user_id
                 ))
-                return cursor.rowcount > 0
-        except sqlite3.Error:
+                
+                success = cursor.rowcount > 0
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("UPDATE", "users", user.user_id, success)
+                log_performance("Update user", duration)
+                
+                if success:
+                    self.logger.info(f"User {user.username} updated successfully")
+                else:
+                    self.logger.warning(f"Failed to update user {user.username}")
+                
+                return success
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Update user (error)", duration)
+            self.logger.error(f"Error updating user {user.username}: {e}")
+            log_exception(e, f"Updating user {user.username}")
             return False
     
     def load_all_users(self) -> List[User]:
         """
-        Load all users.
+        Load all users with logging.
         
         Returns:
             List of all users
         """
+        start_time = time.time()
+        self.logger.info("Loading all users")
+        
         users = []
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -260,14 +374,23 @@ class DatabaseHandler:
                     user.last_login = datetime.fromisoformat(row[5]) if row[5] else None
                     user.is_active = bool(row[6])
                     users.append(user)
-        except sqlite3.Error:
-            pass
+                
+                duration = (time.time() - start_time) * 1000
+                log_performance("Load all users", duration)
+                self.logger.info(f"Loaded {len(users)} users")
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load all users (error)", duration)
+            self.logger.error(f"Error loading all users: {e}")
+            log_exception(e, "Loading all users")
+            
         return users
     
     # Task operations
     def save_task(self, task: Task) -> Optional[int]:
         """
-        Save a task to database.
+        Save a task to database with logging.
         
         Args:
             task: Task to save
@@ -275,6 +398,9 @@ class DatabaseHandler:
         Returns:
             Task ID if successful, None otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Saving task: {task.title}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -302,13 +428,24 @@ class DatabaseHandler:
                 if task.tags:
                     self._save_task_tags(conn, task_id, task.tags)
                 
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("CREATE", "tasks", task_id, True)
+                log_performance("Save task", duration)
+                self.logger.info(f"Task '{task.title}' saved with ID: {task_id}")
+                
                 return task_id
-        except sqlite3.Error:
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_database_operation("CREATE", "tasks", None, False)
+            log_performance("Save task (failed)", duration)
+            self.logger.error(f"Failed to save task '{task.title}': {e}")
+            log_exception(e, f"Saving task '{task.title}'")
             return None
     
     def load_task(self, task_id: int) -> Optional[Task]:
         """
-        Load a task by ID.
+        Load a task by ID with logging.
         
         Args:
             task_id: Task ID
@@ -316,6 +453,9 @@ class DatabaseHandler:
         Returns:
             Task if found, None otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Loading task ID: {task_id}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -329,14 +469,30 @@ class DatabaseHandler:
                 if row:
                     task = self._row_to_task(row)
                     task.tags = self._load_task_tags(conn, task_id)
+                    
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("READ", "tasks", task_id, True)
+                    log_performance("Load task", duration)
+                    self.logger.debug(f"Task ID {task_id} loaded successfully")
+                    
                     return task
-        except sqlite3.Error:
-            pass
+                else:
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("READ", "tasks", task_id, False)
+                    log_performance("Load task (not found)", duration)
+                    self.logger.debug(f"Task ID {task_id} not found")
+                    
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load task (error)", duration)
+            self.logger.error(f"Error loading task ID {task_id}: {e}")
+            log_exception(e, f"Loading task ID {task_id}")
+            
         return None
     
     def load_user_tasks(self, user_id: int, include_completed: bool = True) -> List[Task]:
         """
-        Load all tasks for a user.
+        Load all tasks for a user with logging.
         
         Args:
             user_id: User ID
@@ -345,6 +501,9 @@ class DatabaseHandler:
         Returns:
             List of user tasks
         """
+        start_time = time.time()
+        self.logger.debug(f"Loading tasks for user ID {user_id}, include_completed={include_completed}")
+        
         tasks = []
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -368,13 +527,22 @@ class DatabaseHandler:
                     task = self._row_to_task(row)
                     task.tags = self._load_task_tags(conn, task.task_id)
                     tasks.append(task)
-        except sqlite3.Error:
-            pass
+                
+                duration = (time.time() - start_time) * 1000
+                log_performance("Load user tasks", duration, f"Loaded {len(tasks)} tasks")
+                self.logger.debug(f"Loaded {len(tasks)} tasks for user ID {user_id}")
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load user tasks (error)", duration)
+            self.logger.error(f"Error loading tasks for user ID {user_id}: {e}")
+            log_exception(e, f"Loading tasks for user ID {user_id}")
+            
         return tasks
     
     def update_task(self, task: Task) -> bool:
         """
-        Update an existing task.
+        Update an existing task with logging.
         
         Args:
             task: Task to update
@@ -382,6 +550,9 @@ class DatabaseHandler:
         Returns:
             True if successful, False otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Updating task: {task.title}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -409,13 +580,28 @@ class DatabaseHandler:
                 if task.tags:
                     self._save_task_tags(conn, task.task_id, task.tags)
                 
-                return cursor.rowcount > 0
-        except sqlite3.Error:
+                success = cursor.rowcount > 0
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("UPDATE", "tasks", task.task_id, success)
+                log_performance("Update task", duration)
+                
+                if success:
+                    self.logger.info(f"Task '{task.title}' updated successfully")
+                else:
+                    self.logger.warning(f"Failed to update task '{task.title}'")
+                
+                return success
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Update task (error)", duration)
+            self.logger.error(f"Error updating task '{task.title}': {e}")
+            log_exception(e, f"Updating task '{task.title}'")
             return False
     
     def delete_task(self, task_id: int) -> bool:
         """
-        Delete a task.
+        Delete a task with logging.
         
         Args:
             task_id: Task ID to delete
@@ -423,18 +609,37 @@ class DatabaseHandler:
         Returns:
             True if successful, False otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Deleting task ID: {task_id}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-                return cursor.rowcount > 0
-        except sqlite3.Error:
+                
+                success = cursor.rowcount > 0
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("DELETE", "tasks", task_id, success)
+                log_performance("Delete task", duration)
+                
+                if success:
+                    self.logger.info(f"Task ID {task_id} deleted successfully")
+                else:
+                    self.logger.warning(f"Failed to delete task ID {task_id}")
+                
+                return success
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Delete task (error)", duration)
+            self.logger.error(f"Error deleting task ID {task_id}: {e}")
+            log_exception(e, f"Deleting task ID {task_id}")
             return False
     
     # Tag operations
     def save_tag(self, tag: Tag) -> Optional[int]:
         """
-        Save a tag to database.
+        Save a tag to database with logging.
         
         Args:
             tag: Tag to save
@@ -442,6 +647,9 @@ class DatabaseHandler:
         Returns:
             Tag ID if successful, None otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Saving tag: {tag.name}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -451,18 +659,33 @@ class DatabaseHandler:
                 """, (tag.name, tag.color, tag.description, tag.created_at.isoformat()))
                 
                 if cursor.rowcount > 0:
-                    return cursor.lastrowid
+                    tag_id = cursor.lastrowid
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("CREATE", "tags", tag_id, True)
+                    log_performance("Save tag", duration)
+                    self.logger.debug(f"Tag '{tag.name}' saved with ID: {tag_id}")
+                    return tag_id
                 else:
                     # Tag already exists, get its ID
                     cursor.execute("SELECT id FROM tags WHERE name = ?", (tag.name,))
                     row = cursor.fetchone()
-                    return row[0] if row else None
-        except sqlite3.Error:
+                    tag_id = row[0] if row else None
+                    
+                    duration = (time.time() - start_time) * 1000
+                    log_performance("Save tag (exists)", duration)
+                    self.logger.debug(f"Tag '{tag.name}' already exists with ID: {tag_id}")
+                    return tag_id
+                    
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Save tag (error)", duration)
+            self.logger.error(f"Error saving tag '{tag.name}': {e}")
+            log_exception(e, f"Saving tag '{tag.name}'")
             return None
     
     def load_tag_by_name(self, name: str) -> Optional[Tag]:
         """
-        Load tag by name.
+        Load tag by name with logging.
         
         Args:
             name: Tag name
@@ -470,6 +693,9 @@ class DatabaseHandler:
         Returns:
             Tag if found, None otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Loading tag by name: {name}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -482,18 +708,35 @@ class DatabaseHandler:
                 if row:
                     tag = Tag(row[0], row[1], row[2])
                     tag.created_at = datetime.fromisoformat(row[3]) if row[3] else datetime.now()
+                    
+                    duration = (time.time() - start_time) * 1000
+                    log_performance("Load tag", duration)
+                    self.logger.debug(f"Tag '{name}' loaded successfully")
+                    
                     return tag
-        except sqlite3.Error:
-            pass
+                else:
+                    duration = (time.time() - start_time) * 1000
+                    log_performance("Load tag (not found)", duration)
+                    self.logger.debug(f"Tag '{name}' not found")
+                    
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load tag (error)", duration)
+            self.logger.error(f"Error loading tag '{name}': {e}")
+            log_exception(e, f"Loading tag '{name}'")
+            
         return None
     
     def load_all_tags(self) -> List[Tag]:
         """
-        Load all tags.
+        Load all tags with logging.
         
         Returns:
             List of all tags
         """
+        start_time = time.time()
+        self.logger.debug("Loading all tags")
+        
         tags = []
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -507,14 +750,23 @@ class DatabaseHandler:
                     tag = Tag(row[0], row[1], row[2])
                     tag.created_at = datetime.fromisoformat(row[3]) if row[3] else datetime.now()
                     tags.append(tag)
-        except sqlite3.Error:
-            pass
+                
+                duration = (time.time() - start_time) * 1000
+                log_performance("Load all tags", duration, f"Loaded {len(tags)} tags")
+                self.logger.debug(f"Loaded {len(tags)} tags")
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load all tags (error)", duration)
+            self.logger.error(f"Error loading all tags: {e}")
+            log_exception(e, "Loading all tags")
+            
         return tags
     
     # Routine operations
     def save_routine(self, routine: Routine) -> Optional[int]:
         """
-        Save a routine to database.
+        Save a routine to database with logging.
         
         Args:
             routine: Routine to save
@@ -522,6 +774,9 @@ class DatabaseHandler:
         Returns:
             Routine ID if successful, None otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Saving routine: {routine.name}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -546,13 +801,26 @@ class DatabaseHandler:
                     routine.repeat_interval,
                     json.dumps(routine.task_templates)
                 ))
-                return cursor.lastrowid
-        except sqlite3.Error:
+                
+                routine_id = cursor.lastrowid
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("CREATE", "routines", routine_id, True)
+                log_performance("Save routine", duration)
+                self.logger.info(f"Routine '{routine.name}' saved with ID: {routine_id}")
+                
+                return routine_id
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_database_operation("CREATE", "routines", None, False)
+            log_performance("Save routine (failed)", duration)
+            self.logger.error(f"Failed to save routine '{routine.name}': {e}")
+            log_exception(e, f"Saving routine '{routine.name}'")
             return None
     
     def load_routine(self, routine_id: int) -> Optional[Routine]:
         """
-        Load a routine by ID.
+        Load a routine by ID with logging.
         
         Args:
             routine_id: Routine ID
@@ -560,6 +828,9 @@ class DatabaseHandler:
         Returns:
             Routine if found, None otherwise
         """
+        start_time = time.time()
+        self.logger.debug(f"Loading routine ID: {routine_id}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -572,14 +843,31 @@ class DatabaseHandler:
                 
                 row = cursor.fetchone()
                 if row:
-                    return self._row_to_routine(row)
-        except sqlite3.Error:
-            pass
+                    routine = self._row_to_routine(row)
+                    
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("READ", "routines", routine_id, True)
+                    log_performance("Load routine", duration)
+                    self.logger.debug(f"Routine ID {routine_id} loaded successfully")
+                    
+                    return routine
+                else:
+                    duration = (time.time() - start_time) * 1000
+                    log_database_operation("READ", "routines", routine_id, False)
+                    log_performance("Load routine (not found)", duration)
+                    self.logger.debug(f"Routine ID {routine_id} not found")
+                    
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load routine (error)", duration)
+            self.logger.error(f"Error loading routine ID {routine_id}: {e}")
+            log_exception(e, f"Loading routine ID {routine_id}")
+            
         return None
     
     def load_user_routines(self, user_id: int, active_only: bool = True) -> List[Routine]:
         """
-        Load routines for a user.
+        Load routines for a user with logging.
         
         Args:
             user_id: User ID
@@ -588,6 +876,9 @@ class DatabaseHandler:
         Returns:
             List of routines
         """
+        start_time = time.time()
+        self.logger.debug(f"Loading routines for user ID {user_id}, active_only={active_only}")
+        
         routines = []
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -611,13 +902,22 @@ class DatabaseHandler:
                 for row in cursor.fetchall():
                     routine = self._row_to_routine(row)
                     routines.append(routine)
-        except sqlite3.Error:
-            pass
+                
+                duration = (time.time() - start_time) * 1000
+                log_performance("Load user routines", duration, f"Loaded {len(routines)} routines")
+                self.logger.debug(f"Loaded {len(routines)} routines for user ID {user_id}")
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Load user routines (error)", duration)
+            self.logger.error(f"Error loading routines for user ID {user_id}: {e}")
+            log_exception(e, f"Loading routines for user ID {user_id}")
+            
         return routines
     
     def update_routine(self, routine: Routine) -> bool:
         """
-        Update a routine.
+        Update a routine with logging.
         
         Args:
             routine: Routine to update
@@ -625,6 +925,9 @@ class DatabaseHandler:
         Returns:
             True if successful, False otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Updating routine: {routine.name}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -649,13 +952,29 @@ class DatabaseHandler:
                     json.dumps(routine.task_templates),
                     routine.routine_id
                 ))
-                return cursor.rowcount > 0
-        except sqlite3.Error:
+                
+                success = cursor.rowcount > 0
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("UPDATE", "routines", routine.routine_id, success)
+                log_performance("Update routine", duration)
+                
+                if success:
+                    self.logger.info(f"Routine '{routine.name}' updated successfully")
+                else:
+                    self.logger.warning(f"Failed to update routine '{routine.name}'")
+                
+                return success
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Update routine (error)", duration)
+            self.logger.error(f"Error updating routine '{routine.name}': {e}")
+            log_exception(e, f"Updating routine '{routine.name}'")
             return False
     
     def delete_routine(self, routine_id: int) -> bool:
         """
-        Delete a routine.
+        Delete a routine with logging.
         
         Args:
             routine_id: Routine ID to delete
@@ -663,12 +982,31 @@ class DatabaseHandler:
         Returns:
             True if successful, False otherwise
         """
+        start_time = time.time()
+        self.logger.info(f"Deleting routine ID: {routine_id}")
+        
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM routines WHERE id = ?", (routine_id,))
-                return cursor.rowcount > 0
-        except sqlite3.Error:
+                
+                success = cursor.rowcount > 0
+                duration = (time.time() - start_time) * 1000
+                log_database_operation("DELETE", "routines", routine_id, success)
+                log_performance("Delete routine", duration)
+                
+                if success:
+                    self.logger.info(f"Routine ID {routine_id} deleted successfully")
+                else:
+                    self.logger.warning(f"Failed to delete routine ID {routine_id}")
+                
+                return success
+                
+        except sqlite3.Error as e:
+            duration = (time.time() - start_time) * 1000
+            log_performance("Delete routine (error)", duration)
+            self.logger.error(f"Error deleting routine ID {routine_id}: {e}")
+            log_exception(e, f"Deleting routine ID {routine_id}")
             return False
     
     # Helper methods
