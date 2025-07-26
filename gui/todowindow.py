@@ -983,8 +983,7 @@ class TodoWindow(QMainWindow):
         reply = QMessageBox.question(
             self, 
             "Confirm Delete",
-            f"Are you sure you want to delete '{task.title}'?\n\n"
-            f"This will also delete all subtasks.",
+            f"Are you sure you want to delete '{task.title}'?\n",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
