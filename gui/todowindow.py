@@ -19,7 +19,6 @@ from PySide6.QtGui import QAction, QFont, QIcon, QPalette
 
 from core.tasks import TaskManager, Task, Tag, Priority
 from core.user import User
-from core.routines import RoutineManager
 from gui.widgets import TaskWidget, TagWidget, TaskTreeWidget
 
 import time
@@ -139,7 +138,6 @@ class TodoWindow(QMainWindow):
         self.db_handler = db_handler
         self.user = user
         self.task_manager = TaskManager(db_handler)
-        self.routine_manager = RoutineManager(db_handler, self.task_manager)
         
         from utils.logger import get_logger
         self.logger = get_logger(__name__)
@@ -224,9 +222,6 @@ class TodoWindow(QMainWindow):
         self.add_task_btn = QPushButton("+ Add Task")
         #self.add_task_btn.setStyleSheet("font-weight: bold; color: #ffffff; background-color: #007bff; border-radius: 4px; padding: 8px 16px;")
         actions_layout.addWidget(self.add_task_btn)
-        
-        self.generate_routines_btn = QPushButton("Generate Daily Tasks")
-        actions_layout.addWidget(self.generate_routines_btn)
         
         layout.addWidget(actions_group)
         
@@ -419,13 +414,6 @@ class TodoWindow(QMainWindow):
         refresh_action.setShortcut("F5")
         refresh_action.triggered.connect(self.refresh_tasks)
         tasks_menu.addAction(refresh_action)
-        
-        # Routines menu
-        routines_menu = menubar.addMenu("&Routines")
-        
-        generate_action = QAction("&Generate Daily Tasks", self)
-        generate_action.triggered.connect(self.generate_routine_tasks)
-        routines_menu.addAction(generate_action)
     
     def setup_toolbar(self) -> None:
         """Set up the toolbar."""
@@ -445,11 +433,6 @@ class TodoWindow(QMainWindow):
         toolbar.addAction(refresh_action)
         
         toolbar.addSeparator()
-        
-        # Generate routines
-        routines_action = QAction("Generate Daily Tasks", self)
-        routines_action.triggered.connect(self.generate_routine_tasks)
-        toolbar.addAction(routines_action)
     
     def setup_statusbar(self) -> None:
         """Set up the status bar."""
@@ -778,7 +761,6 @@ class TodoWindow(QMainWindow):
         """Connect widget signals to slots with logging."""
         # Left panel actions
         self.add_task_btn.clicked.connect(self.add_task)
-        self.generate_routines_btn.clicked.connect(self.generate_routine_tasks)
         
         # Filter buttons
         self.reset_filters_btn.clicked.connect(self.reset_filters)
@@ -1043,71 +1025,11 @@ class TodoWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete task: {str(e)}")
     
-    def generate_routine_tasks(self) -> None:
-        """Generate tasks from active routines."""
-        try:
-            if not self.user.user_id:
-                return
-                
-            generated_tasks = self.routine_manager.generate_routine_tasks(self.user.user_id)
-            
-            if generated_tasks:
-                self.refresh_tasks()
-                count = len(generated_tasks)
-                self.statusBar().showMessage(f"Generated {count} tasks from routines")
-                QMessageBox.information(
-                    self, 
-                    "Routines Generated", 
-                    f"Successfully generated {count} tasks from your active routines."
-                )
-            else:
-                QMessageBox.information(
-                    self,
-                    "No Routines", 
-                    "No routine tasks were generated. This may be because:\n"
-                    "• No active routines are configured\n"
-                    "• Routine tasks have already been generated today\n"
-                    "• No routines are scheduled for today"
-                )
-                
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to generate routine tasks: {str(e)}")
-    
+   
     def closeEvent(self, event) -> None:
         """Handle window close event."""
         self.refresh_timer.stop()
         event.accept()
-
-    # def reset_filters(self) -> None:
-    #     """Reset all filters to default values."""
-    #     start_time = time.time()
-    #     self.logger.info("Resetting all filters")
-        
-    #     try:
-    #         # Reset all filter controls to default
-    #         self.search_edit.clear()
-    #         self.status_combo.setCurrentIndex(0)  # "All Tasks"
-    #         self.priority_combo.setCurrentIndex(0)  # "All Priorities"
-    #         self.tag_combo.setCurrentIndex(0)  # "All Tags"
-    #         self.show_completed_checkbox.setChecked(True)
-            
-    #         # Apply the reset filters
-    #         self.apply_filters()
-            
-    #         duration = (time.time() - start_time) * 1000
-    #         log_performance("Reset filters", duration)
-    #         self.logger.info("All filters reset successfully")
-    #         self.statusBar().showMessage("Filters reset")
-            
-    #     except Exception as e:
-    #         self.logger.error(f"Error resetting filters: {e}")
-    #         log_exception(e, "Reset filters")
-    #         QMessageBox.warning(self, "Error", f"Failed to reset filters: {str(e)}")
-
-    # def apply_filters(self) -> None:
-    #     """Apply current filters to task list (existing method - keep as is)."""
-    #     # Your existing apply_filters method code stays the same
-    #     # Just make sure it doesn't get called automatically anymore
 
     def reset_filters(self) -> None:
         """Reset all filters to default values."""
