@@ -141,6 +141,9 @@ class TodoWindow(QMainWindow):
         self.task_manager = TaskManager(db_handler)
         self.routine_manager = RoutineManager(db_handler, self.task_manager)
         
+        from utils.logger import get_logger
+        self.logger = get_logger(__name__)
+
         # State variables
         self.current_tasks: List[Task] = []
         self.filtered_tasks: List[Task] = []
@@ -868,7 +871,10 @@ class TodoWindow(QMainWindow):
         
         self.filtered_tasks = filtered_tasks
         self.task_tree.update_tasks(self.filtered_tasks)
-    
+
+        # Add status update
+        self.statusBar().showMessage(f"Showing {len(self.filtered_tasks)} of {len(self.current_tasks)} tasks")
+
     def update_statistics(self) -> None:
         """Update task statistics."""
         total = len(self.current_tasks)
@@ -1072,11 +1078,39 @@ class TodoWindow(QMainWindow):
         self.refresh_timer.stop()
         event.accept()
 
+    # def reset_filters(self) -> None:
+    #     """Reset all filters to default values."""
+    #     start_time = time.time()
+    #     self.logger.info("Resetting all filters")
+        
+    #     try:
+    #         # Reset all filter controls to default
+    #         self.search_edit.clear()
+    #         self.status_combo.setCurrentIndex(0)  # "All Tasks"
+    #         self.priority_combo.setCurrentIndex(0)  # "All Priorities"
+    #         self.tag_combo.setCurrentIndex(0)  # "All Tags"
+    #         self.show_completed_checkbox.setChecked(True)
+            
+    #         # Apply the reset filters
+    #         self.apply_filters()
+            
+    #         duration = (time.time() - start_time) * 1000
+    #         log_performance("Reset filters", duration)
+    #         self.logger.info("All filters reset successfully")
+    #         self.statusBar().showMessage("Filters reset")
+            
+    #     except Exception as e:
+    #         self.logger.error(f"Error resetting filters: {e}")
+    #         log_exception(e, "Reset filters")
+    #         QMessageBox.warning(self, "Error", f"Failed to reset filters: {str(e)}")
+
+    # def apply_filters(self) -> None:
+    #     """Apply current filters to task list (existing method - keep as is)."""
+    #     # Your existing apply_filters method code stays the same
+    #     # Just make sure it doesn't get called automatically anymore
+
     def reset_filters(self) -> None:
         """Reset all filters to default values."""
-        start_time = time.time()
-        self.logger.info("Resetting all filters")
-        
         try:
             # Reset all filter controls to default
             self.search_edit.clear()
@@ -1088,17 +1122,8 @@ class TodoWindow(QMainWindow):
             # Apply the reset filters
             self.apply_filters()
             
-            duration = (time.time() - start_time) * 1000
-            log_performance("Reset filters", duration)
-            self.logger.info("All filters reset successfully")
             self.statusBar().showMessage("Filters reset")
             
         except Exception as e:
-            self.logger.error(f"Error resetting filters: {e}")
-            log_exception(e, "Reset filters")
+            self.statusBar().showMessage(f"Failed to reset filters: {str(e)}")
             QMessageBox.warning(self, "Error", f"Failed to reset filters: {str(e)}")
-
-    def apply_filters(self) -> None:
-        """Apply current filters to task list (existing method - keep as is)."""
-        # Your existing apply_filters method code stays the same
-        # Just make sure it doesn't get called automatically anymore
