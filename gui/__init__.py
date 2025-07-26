@@ -2,6 +2,6 @@
 
 from .login import LoginWindow
 from .todowindow import TodoWindow
-from .widgets import TaskWidget, TagWidget, TaskTreeWidget
+from .widgets import TaskWidget, TaskTreeWidget
 
-__all__ = ['LoginWindow', 'TodoWindow', 'TaskWidget', 'TagWidget', 'TaskTreeWidget']
+__all__ = ['LoginWindow', 'TodoWindow', 'TaskWidget', 'TaskTreeWidget']

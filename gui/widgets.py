@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QPalette, QColor, QAction, QCursor
 
-from core.tasks import Task, Tag, Priority
+from core.tasks import Task, Priority
 
 
 class TaskWidget(QWidget):
@@ -101,11 +101,6 @@ class TaskWidget(QWidget):
         self.priority_label.setStyleSheet("border-radius: 6px;")
         layout.addWidget(self.priority_label)
         
-        # Tags area
-        self.tags_layout = QHBoxLayout()
-        self.tags_layout.setSpacing(4)
-        layout.addLayout(self.tags_layout)
-        
         layout.addStretch()
         
         # Action buttons (initially hidden)
@@ -174,37 +169,11 @@ class TaskWidget(QWidget):
         }
         color = priority_colors.get(self.task.priority, "#6c757d")
         self.priority_label.setStyleSheet(f"background-color: {color}; border-radius: 6px;")
-        
-        # Update tags
-        self.update_tags()
-        
+                
         # Update checkbox
         self.completed_checkbox.setChecked(self.task.completed)
     
-    def update_tags(self) -> None:
-        """Update tags display."""
-        # Clear existing tag widgets
-        while self.tags_layout.count():
-            child = self.tags_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-        
-        # Add tag widgets
-        for tag in list(self.task.tags)[:3]:  # Show max 3 tags
-            tag_widget = TagWidget(tag)
-            self.tags_layout.addWidget(tag_widget)
-        
-        # Add "more" indicator if there are more tags
-        if len(self.task.tags) > 3:
-            more_label = QLabel(f"+{len(self.task.tags) - 3}")
-            more_label.setStyleSheet("""
-                background-color: #e9ecef;
-                color: #495057;
-                padding: 2px 6px;
-                border-radius: 10px;
-                font-size: 8pt;
-            """)
-            self.tags_layout.addWidget(more_label)
+    
     
     def enterEvent(self, event) -> None:
         """Show action buttons on mouse enter."""
@@ -217,45 +186,6 @@ class TaskWidget(QWidget):
         self.edit_button.hide()
         self.delete_button.hide()
         super().leaveEvent(event)
-
-
-class TagWidget(QWidget):
-    """Widget for displaying a single tag."""
-    
-    def __init__(self, tag: Tag, parent=None) -> None:
-        """
-        Initialize tag widget.
-        
-        Args:
-            tag: Tag to display
-            parent: Parent widget
-        """
-        super().__init__(parent)
-        self.tag = tag
-        self.setup_ui()
-    
-    def setup_ui(self) -> None:
-        """Set up the widget UI."""
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(6, 2, 6, 2)
-        layout.setSpacing(0)
-        
-        # Tag label
-        label = QLabel(self.tag.name)
-        label.setStyleSheet(f"""
-            background-color: {self.tag.color};
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 8pt;
-            font-weight: 500;
-        """)
-        
-        layout.addWidget(label)
-        
-        # Set fixed size
-        self.setFixedHeight(20)
-        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
 
 
 class TaskTreeWidget(QTreeWidget):

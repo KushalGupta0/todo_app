@@ -17,9 +17,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QTimer, QDate
 from PySide6.QtGui import QAction, QFont, QIcon, QPalette
 
-from core.tasks import TaskManager, Task, Tag, Priority
+from core.tasks import TaskManager, Task, Priority
 from core.user import User
-from gui.widgets import TaskWidget, TagWidget, TaskTreeWidget
+from gui.widgets import TaskWidget, TaskTreeWidget
 
 import time
 from utils.logger import log_performance, log_exception
@@ -145,7 +145,6 @@ class TodoWindow(QMainWindow):
         # State variables
         self.current_tasks: List[Task] = []
         self.filtered_tasks: List[Task] = []
-        self.available_tags: List[Tag] = []
         
         self.setup_ui()
         self.setup_menus()
@@ -261,12 +260,6 @@ class TodoWindow(QMainWindow):
         self.priority_combo.addItems(["All Priorities", "Low", "Medium", "High", "Urgent"])
         filters_layout.addWidget(QLabel("Priority:"))
         filters_layout.addWidget(self.priority_combo)
-
-        # Tag filter
-        self.tag_combo = QComboBox()
-        self.tag_combo.addItem("All Tags")
-        filters_layout.addWidget(QLabel("Tag:"))
-        filters_layout.addWidget(self.tag_combo)
 
         # Filter buttons section
         filter_buttons_layout = QHBoxLayout()
@@ -778,17 +771,6 @@ class TodoWindow(QMainWindow):
     def load_data(self) -> None:
         """Load initial data."""
         self.refresh_tasks()
-        self.load_tags()
-    
-    def load_tags(self) -> None:
-        """Load available tags."""
-        self.available_tags = self.db_handler.load_all_tags()
-        
-        # Update tag combo
-        self.tag_combo.clear()
-        self.tag_combo.addItem("All Tags")
-        for tag in self.available_tags:
-            self.tag_combo.addItem(tag.name)
     
     def refresh_tasks(self) -> None:
         """Refresh task list from database."""
@@ -837,14 +819,6 @@ class TodoWindow(QMainWindow):
             filtered_tasks = [
                 task for task in filtered_tasks
                 if task.priority == priority_map[priority_filter]
-            ]
-        
-        # Tag filter
-        tag_filter = self.tag_combo.currentText()
-        if tag_filter != "All Tags":
-            filtered_tasks = [
-                task for task in filtered_tasks
-                if any(tag.name == tag_filter for tag in task.tags)
             ]
         
         # Show completed filter
@@ -1038,7 +1012,6 @@ class TodoWindow(QMainWindow):
             self.search_edit.clear()
             self.status_combo.setCurrentIndex(0)  # "All Tasks"
             self.priority_combo.setCurrentIndex(0)  # "All Priorities"
-            self.tag_combo.setCurrentIndex(0)  # "All Tags"
             self.show_completed_checkbox.setChecked(True)
             
             # Apply the reset filters

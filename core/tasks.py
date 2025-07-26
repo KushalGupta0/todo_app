@@ -16,39 +16,6 @@ class Priority(Enum):
     HIGH = 3
     URGENT = 4
 
-
-class Tag:
-    """Represents a task tag with color and category information."""
-    
-    def __init__(self, name: str, color: str = "#3498db", description: str = "") -> None:
-        """
-        Initialize a tag.
-        
-        Args:
-            name: Tag name
-            color: Hex color code for the tag
-            description: Optional tag description
-        """
-        self.name: str = name
-        self.color: str = color
-        self.description: str = description
-        self.created_at: datetime = datetime.now()
-    
-    def __str__(self) -> str:
-        """Return string representation of the tag."""
-        return self.name
-    
-    def __eq__(self, other: object) -> bool:
-        """Check equality with another tag."""
-        if not isinstance(other, Tag):
-            return NotImplemented
-        return self.name == other.name
-    
-    def __hash__(self) -> int:
-        """Return hash of the tag."""
-        return hash(self.name)
-
-
 class Task:
     """Represents a single task with all its properties."""
     
@@ -77,7 +44,6 @@ class Task:
         self.parent_id: Optional[int] = parent_id
         self.user_id: Optional[int] = user_id
         self.priority: Priority = Priority.MEDIUM
-        self.tags: Set[Tag] = set()
         self.due_date: Optional[datetime] = None
         self.created_at: datetime = datetime.now()
         self.updated_at: datetime = datetime.now()
@@ -88,25 +54,6 @@ class Task:
         self.children: List['Task'] = []
         self.parent: Optional['Task'] = None
     
-    def add_tag(self, tag: Tag) -> None:
-        """
-        Add a tag to the task.
-        
-        Args:
-            tag: Tag to add
-        """
-        self.tags.add(tag)
-        self.updated_at = datetime.now()
-    
-    def remove_tag(self, tag: Tag) -> None:
-        """
-        Remove a tag from the task.
-        
-        Args:
-            tag: Tag to remove
-        """
-        self.tags.discard(tag)
-        self.updated_at = datetime.now()
     
     def mark_completed(self, completed: bool = True) -> None:
         """
@@ -358,7 +305,7 @@ class TaskManager:
         
         return success
     
-    def search_tasks(self, user_id: int, query: str, search_tags: bool = True) -> List[Task]:
+    def search_tasks(self, user_id: int, query: str) -> List[Task]:
         """
         Search tasks by title, description, or tags.
         
@@ -384,29 +331,8 @@ class TaskManager:
                 matching_tasks.append(task)
                 continue
             
-            # Search in tags if enabled
-            if search_tags:
-                for tag in task.tags:
-                    if query_lower in tag.name.lower():
-                        matching_tasks.append(task)
-                        break
         
         return matching_tasks
-    
-    def get_tasks_by_tag(self, user_id: int, tag_name: str) -> List[Task]:
-        """
-        Get tasks filtered by tag.
-        
-        Args:
-            user_id: User ID
-            tag_name: Tag name to filter by
-            
-        Returns:
-            List of tasks with the specified tag
-        """
-        user_tasks = self.get_user_tasks(user_id)
-        return [task for task in user_tasks 
-                if any(tag.name == tag_name for tag in task.tags)]
     
     def get_overdue_tasks(self, user_id: int) -> List[Task]:
         """
