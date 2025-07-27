@@ -8,7 +8,6 @@ A modern, feature-rich To-Do List application built with PySide6 and Python. Thi
 
 - **User Authentication**: Secure login and registration system with password hashing
 - **Task Management**: Create, edit, delete, and organize tasks
-- **Task Hierarchy**: Support for parent-child task relationships (subtasks)
 - **Task Completion**: Mark tasks as complete with visual strikethrough
 - **Priority System**: Assign priority levels (Low, Medium, High, Urgent) with color indicators
 - **Due Dates**: Set and track task deadlines with overdue detection
@@ -120,7 +119,6 @@ bcrypt>=4.0.0
 
 Key Features:
 
-- Task hierarchy support (parent-child relationships)
 - Priority management with visual indicators
 - Due date tracking and overdue detection
 - Completion status tracking
@@ -347,7 +345,6 @@ Users can customize:
 
 ### Advanced Features
 
-- **Subtasks**: Create task hierarchies by adding subtasks to existing tasks
 - **Search**: Use the search box to find tasks by title or description
 - **Filtering**: Combine multiple filters for precise task lists
 - **Keyboard Shortcuts**: Use Ctrl+N (new task), F5 (refresh), Ctrl+Q (quit)
@@ -459,13 +456,10 @@ The codebase follows clean architecture principles:
 
 - ✅ Core task management functionality
 - ✅ User authentication system
-- ✅ Hierarchical task organization
 - ✅ Priority-based task organization
 - ✅ Advanced filtering and search
 - ✅ Comprehensive logging system
 - ✅ Modern PySide6 interface
-- ❌ Removed: Routine/automation features (simplified for core functionality)
-- ❌ Removed: Tag system (simplified for core functionality)
 
 
 ## 🤝 Contributing
